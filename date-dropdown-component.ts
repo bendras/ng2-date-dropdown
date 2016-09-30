@@ -1,5 +1,8 @@
-import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostListener, ElementRef } from '@angular/core';
 import * as moment from 'moment';
+
+// npm module "focusin": "^2.0.0",
+require('focusin').polyfill();
 
 @Component({
     selector: 'date-dropdown',
@@ -20,20 +23,27 @@ import * as moment from 'moment';
         height: 251px;
         left: 0px;
         top: 25px;
-        z-index: 1;
+        z-index: 10;
       }
     `],
 })
 export class DateDropdownComponent {
-  private dateDisplayFormat: string = 'YYYY/MM/DD';
-
   private showDatepicker: boolean = false;
   private dateValueInDatepicker: Date | null;
+
+    @Input()
+    public dateFormat: string;
+
+    @Input()
+    public dateDisplayFormat: string;
 
     @Input()
     dateModel: string;
     @Output()
     dateModelChange: EventEmitter<string> = new EventEmitter();
+
+    constructor(private htmlElement: ElementRef) {
+    }
 
     get date() : string {
       return this.dateModel;
@@ -43,7 +53,7 @@ export class DateDropdownComponent {
       this.dateModel = value;
       this.dateModelChange.emit(value)
 
-      let parsedDate = moment(value, this.dateDisplayFormat, true);
+      let parsedDate = moment(value, this.dateFormat, true);
       
       if (parsedDate.isValid()) {
         this.dateValueInDatepicker = parsedDate.toDate();
@@ -60,14 +70,16 @@ export class DateDropdownComponent {
     acceptDateValue(event: Date) {
         this.showDatepicker = false;
 
-        this.date = moment(event).format(this.dateDisplayFormat);
+        this.date = moment(event).format(this.dateFormat);
     }
 
     @HostListener('focusout', ['$event'])
     onFocusout(event) {
-      if (event && event.relatedTarget) {
-        let parentContainsTarget = event.currentTarget.contains(event.relatedTarget);
-        if (parentContainsTarget) {
+      let targetElement = event && (event.relatedTarget || event.explicitOriginalTarget);
+      if (targetElement) {
+        let datepicketElement = this.htmlElement.nativeElement.querySelector("datepicker");
+        let datepicketElementContainsClick = datepicketElement.contains(targetElement);
+        if (datepicketElementContainsClick) {
           return;
         }
       }
